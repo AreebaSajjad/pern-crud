@@ -1,5 +1,10 @@
 const OPENAI_API_URL = 'https://api.openai.com/v1';
 
+// RAG/tool-calling responses ke liye temperature jaan-boojh kar low rakhi hai (0 = pura
+// deterministic, 1 = zyada random/creative). Humein chahiye ke bot sirf context/DB se di gayi
+// info use kare aur khud se cheezein "invent" na kare — is liye 0.3, high-creativity range (0.7+) nahi.
+const CHAT_TEMPERATURE = 0.3;
+
 async function getEmbedding(text) {
   const res = await fetch(`${OPENAI_API_URL}/embeddings`, {
     method: 'POST',
@@ -38,7 +43,7 @@ async function getChatCompletion(systemPrompt, userMessage, history = []) {
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages,
-      temperature: 0.3,
+      temperature: CHAT_TEMPERATURE,
     }),
   });
 
@@ -62,7 +67,7 @@ async function getChatCompletionWithTools(messages, tools) {
       messages,
       tools,
       tool_choice: 'auto', // Tool Selection: model khud decide karta hai koi tool chahiye ya nahi
-      temperature: 0.3,
+      temperature: CHAT_TEMPERATURE,
     }),
   });
 

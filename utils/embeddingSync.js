@@ -1,30 +1,33 @@
 const { pool } = require('../config/pgDb');
 const { getEmbedding } = require('./openaiClient');
+const { chunkText } = require('./chunking');
 
 const buildProductText = (p) =>
   `Product: ${p.name}\nCategory: ${p.category}\nPrice: $${p.price}\nQuantity in stock: ${p.quantity}\nDescription: ${p.description}`;
 
-// Ek product ki embedding banao ya update karo (create/update hone par)
+// Ek product ki embedding(s) banao ya update karo (create/update hone par).
+// Chunking: product text ko chunkText() se todte hain (chunkSize=60 words, overlap=15 words —
+// defaults chunking.js mein hain). Chote products (jo yahan aksar honge) ek hi chunk mein reh jate
+// hain, lekin agar kisi product ki description lambi ho to multiple chunks ban kar alag-alag
+// embed honge — is se un lambe descriptions ka koi bhi hissa similarity search se miss nahi hota.
 const syncProductEmbedding = async (product) => {
   try {
-    const text = buildProductText(product);
-    const vector = await getEmbedding(text);
+    const fullText = buildProductText(product);
     const productId = product._id || product.id;
+    const chunks = chunkText(fullText); // default chunkSize/overlap use ho rahe hain
 
-    const existing = await pool.query(
-      `SELECT id FROM embeddings WHERE source_type = 'product' AND source_id = $1`,
-      [productId]
-    );
+    // Har chunk ki embedding alag se banani parhti hai (embedding API ek text -> ek vector deta hai)
+    const vectors = await Promise.all(chunks.map((chunk) => getEmbedding(chunk)));
 
-    if (existing.rows.length > 0) {
+    // Purane chunks (agar is product ke pehle se the) hata do, phir fresh set insert karo.
+    // Ye "update single row" logic se simpler/safer hai kyunke ab chunks ki count
+    // update pe badal sakti hai (jaise description lambi ho gayi to 1 se 3 chunks ban gaye).
+    await pool.query(`DELETE FROM embeddings WHERE source_type = 'product' AND source_id = $1`, [productId]);
+
+    for (let i = 0; i < chunks.length; i++) {
       await pool.query(
-        `UPDATE embeddings SET text = $1, vector = $2, updated_at = NOW() WHERE id = $3`,
-        [text, vector, existing.rows[0].id]
-      );
-    } else {
-      await pool.query(
-        `INSERT INTO embeddings (source_type, source_id, text, vector) VALUES ('product', $1, $2, $3)`,
-        [productId, text, vector]
+        `INSERT INTO embeddings (source_type, source_id, chunk_index, text, vector) VALUES ('product', $1, $2, $3, $4)`,
+        [productId, i, chunks[i], vectors[i]]
       );
     }
   } catch (err) {

@@ -53,14 +53,30 @@ const Login = () => {
       <h2>Login</h2>
       {error && <p className="error-text">{error}</p>}
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Password</label>
-          <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
+          <div className="form-group">
+  <label htmlFor="email">Email</label>
+  <input 
+    id="email" 
+    name="email" 
+    type="email" 
+    autoComplete="email"
+    value={email} 
+    onChange={(e) => setEmail(e.target.value)} 
+    required 
+  />
+</div>
+
+<div className="form-group">
+  <label htmlFor="password">Password</label>
+  <PasswordInput 
+    id="password"
+    name="password"
+    autoComplete="current-password"
+    value={password} 
+    onChange={(e) => setPassword(e.target.value)} 
+    required 
+  />
+</div>
         <p className="auth-forgot-link">
           <Link to="/forgot-password">Forgot password?</Link>
         </p>
@@ -71,10 +87,10 @@ const Login = () => {
 
       <div className="google-login-wrapper">
         <GoogleLogin
-          onSuccess={handleGoogleSuccess}
-          onError={() => setError('Google login failed')}
-          width="100%"
-        />
+  onSuccess={handleGoogleSuccess}
+  onError={() => setError('Google login failed')}
+  width="300"
+/>
       </div>
 
       <p className="auth-footer">

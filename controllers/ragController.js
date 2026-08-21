@@ -19,6 +19,20 @@ const TOOL_RUNNERS = {}; // { tool_name: runner_function }
 const runAnyTool = (toolCall, currentUser, uploadedImages) => TOOL_RUNNERS[toolCall.function.name](toolCall, currentUser, uploadedImages);
 const GREETING_PATTERNS = /^(hi|hello|hey|salam|assalam|good morning|good evening|good afternoon|hola)[\s!.?]*$/i;
 
+// Retrieval tuning (RAG):
+// TOP_K -> similarity search se kitne sabse relevant chunks context mein dalne hain.
+//   Ab chunking ki wajah se ek hi product ke 1+ chunks ho sakte hain, isliye 4 se 6 kiya
+//   taake agar koi product multi-chunk ho to uska poora context aa sake.
+// SIMILARITY_THRESHOLD -> cosine similarity ka minimum score (0 to 1) jo ek chunk ko
+//   "relevant" maanne ke liye chahiye. Isse bachta hai ke bilkul unrelated query
+//   (jaise "what's the weather") pe bhi zabardasti top-K products context mein na chale jayein.
+//   NOTE: OpenAI embeddings ka baseline similarity kaafi high hota hai (unrelated text bhi
+//   kabhi 0.5+ score kar deta hai), isliye ye value deliberately conservative rakhi hai taake
+//   koi legit match filter na ho jaye. Console.log(scored) laga kar apni real product queries
+//   pe actual scores dekh lena, phir is number ko tune karna — 0.3 sirf ek safe starting point hai.
+const TOP_K = 6;
+const SIMILARITY_THRESHOLD = 0.3;
+
 const isGreeting = (message) => GREETING_PATTERNS.test(message.trim());
 
 const formatOrderLine = (o, includeUserName = false) => {
@@ -227,14 +241,24 @@ const chatWithBot = async (req, res) => {
   .join('\n');
     const totalProductCount = allProductsResult.rows.length;
 
-    let productContext = 'No matching products found.';
+    // Vector Search / Similarity Search + Threshold:
+    // Har chunk ka score nikalo, sirf wo chunks rakho jo SIMILARITY_THRESHOLD se upar hain
+    // (irrelevant matches ko yahin filter kar dete hain), phir un mein se top-K sabse achay le lo.
+    let productContext = 'No matching products found for this query.';
     if (embeddingsResult.rows.length > 0) {
       const scored = embeddingsResult.rows.map((e) => ({
         text: e.text,
         score: cosineSimilarity(queryVector, e.vector),
       }));
       scored.sort((a, b) => b.score - a.score);
-      productContext = scored.slice(0, 4).map((m) => m.text).join('\n\n---\n\n');
+
+      const relevant = scored.filter((m) => m.score >= SIMILARITY_THRESHOLD).slice(0, TOP_K);
+
+      // Context Injection: sirf relevant chunks ka text prompt mein jata hai (score khud nahi jata,
+      // wo sirf humare filtering/debugging ke liye hai — model ko raw number dena faayda nahi deta)
+      if (relevant.length > 0) {
+        productContext = relevant.map((m) => m.text).join('\n\n---\n\n');
+      }
     }
 
     const identityContext = await buildIdentityContext(currentUser);

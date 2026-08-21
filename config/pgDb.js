@@ -88,18 +88,23 @@ const initTables = async () => {
   `);
 
   // Product ki vector embedding (AI search ke liye) — pgvector extension ki zaroorat nahi,
-  // plain float array me store karke JS mein cosine similarity nikalte hain
+  // plain float array me store karke JS mein cosine similarity nikalte hain.
+  // Ek source (jaise ek product) ke multiple chunks ho sakte hain, isliye chunk_index
+  // se track karte hain kaunsa chunk kaunse number pe tha (order/debugging ke liye).
   await pool.query(`
     CREATE TABLE IF NOT EXISTS embeddings (
       id SERIAL PRIMARY KEY,
       source_type VARCHAR(50) NOT NULL,
       source_id INTEGER,
+      chunk_index INTEGER NOT NULL DEFAULT 0,
       text TEXT NOT NULL,
       vector DOUBLE PRECISION[] NOT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
   `);
+  // Existing DB pe agar table pehle se bani hui hai to column add karo (data loss nahi hoga)
+  await pool.query(`ALTER TABLE embeddings ADD COLUMN IF NOT EXISTS chunk_index INTEGER NOT NULL DEFAULT 0;`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS orders (
