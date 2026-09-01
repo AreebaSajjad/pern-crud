@@ -7,9 +7,9 @@ A full-stack store management system built with **PostgreSQL, Express, React, an
 Testing GitHub pull request AI code review integration.
 # AI Code Review Test
 // Testing GitHub AI code review
-// Testing GitHub AI code review
 
 // Testing AI code review webhook
+
 
 ## Features
 
