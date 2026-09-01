@@ -160,3 +160,5 @@ All protected routes require a `Bearer` JWT in the `Authorization` header.
 - Uploaded images are stored locally under `uploads/`.
 - The chatbot uses OpenAI function calling — the exact tools available depend on the logged-in user's role (admins get product/meeting/user management tools; all users get order tools).
 - Password resets never accept a typed password directly — a 6-digit code is emailed and used on the reset-password page.
+
+// trigger test

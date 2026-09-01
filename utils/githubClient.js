@@ -23,6 +23,7 @@ async function getPullRequestFiles(prNumber) {
 // branch protection merge ko block ya allow karta hai
 async function setCommitStatus(sha, state, description, context = 'ai-code-review') {
   const { GITHUB_OWNER, GITHUB_REPO } = process.env;
+  console.log('DEBUG setCommitStatus URL:', url);
   const res = await fetch(
     `${GITHUB_API_URL}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/statuses/${sha}`,
     {
