@@ -61,6 +61,9 @@ const Sidebar = () => {
           <Link to="/okf-query" className={isActive('/okf-query') ? 'active' : ''} onClick={() => setIsOpen(false)}>
             <span className="icon">📄</span> OKF Query
           </Link>
+          <Link to="/knowledge-base" className={isActive('/knowledge-base') ? 'active' : ''} onClick={() => setIsOpen(false)}>
+            <span className="icon">📚</span> Knowledge Base
+          </Link>
           <Link to="/profile" className={isActive('/profile') ? 'active' : ''} onClick={() => setIsOpen(false)}>
             <span className="icon">⚙️</span> Profile
           </Link>

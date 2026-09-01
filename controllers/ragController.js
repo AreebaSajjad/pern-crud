@@ -32,6 +32,9 @@ const GREETING_PATTERNS = /^(hi|hello|hey|salam|assalam|good morning|good evenin
 //   pe actual scores dekh lena, phir is number ko tune karna — 0.3 sirf ek safe starting point hai.
 const TOP_K = 6;
 const SIMILARITY_THRESHOLD = 0.3;
+// Knowledge Base PDFs ke liye alag, bara TOP_K — documents products se kaafi lambe
+// hote hain (200 pages tak), isliye zyada chunks context mein dena zaroori hai.
+const KB_TOP_K = 8;
 
 const isGreeting = (message) => GREETING_PATTERNS.test(message.trim());
 
@@ -220,8 +223,8 @@ const chatWithBot = async (req, res) => {
     if (isGreeting(message)) {
       const greeting =
         currentUser.role === 'admin'
-          ? 'Hello! 👋 Ask me anything about our products, users, meetings, or orders.'
-          : 'Hello! 👋 Ask me anything about our products, your own meetings, or your orders.';
+          ? 'Hello! 👋 Ask me anything about our products, users, meetings, orders, or the uploaded knowledge base documents.'
+          : 'Hello! 👋 Ask me anything about our products, your own meetings, your orders, or the uploaded knowledge base documents.';
 
       await saveMessage('user', message);
       await saveMessage('bot', greeting);
@@ -232,7 +235,6 @@ const chatWithBot = async (req, res) => {
 
     const queryVector = await getEmbedding(message);
     const embeddingsResult = await pool.query(`SELECT e.source_id, e.text, e.vector FROM embeddings e JOIN products p ON p.id = e.source_id WHERE e.source_type = 'product' AND p.deleted_at IS NULL`);
-
     // Poori catalog ka halka summary — taake "kitne products hain?" jaisi aggregate questions
     // ka sahi jawab mile, chahe wo top-4 similarity match mein na aayein
     const allProductsResult = await pool.query('SELECT id, name, price, quantity FROM products WHERE deleted_at IS NULL ORDER BY id');
@@ -261,6 +263,87 @@ const chatWithBot = async (req, res) => {
       }
     }
 
+    // ---------------- Knowledge Base documents (uploaded PDFs) ----------------
+    // Isi query ka embedding (queryVector) upar products ke liye already ban chuka hai,
+    // isliye yahan dobara OpenAI call nahi karni padi — bas ek alag similarity search
+    // kb_document chunks ke against. Ye Knowledge Base module se upload hue PDFs hain.
+    const kbDocsResult = await pool.query(
+      `SELECT id, title, page_count, summary FROM kb_documents WHERE status = 'ready' AND deleted_at IS NULL ORDER BY created_at`
+    );
+    const kbDocumentList = kbDocsResult.rows
+      .map((d) => `- "${d.title}"${d.page_count ? ` (${d.page_count} pages)` : ''}${d.summary ? `\n  Overview: ${d.summary}` : ''}`)
+      .join('\n');
+
+    let kbContext = 'No matching knowledge base content found for this query.';
+    if (kbDocsResult.rows.length > 0) {
+      const kbEmbeddingsResult = await pool.query(
+        `SELECT e.text, e.vector
+         FROM embeddings e
+         JOIN kb_documents d ON d.id = e.source_id
+         WHERE e.source_type = 'kb_document' AND d.status = 'ready' AND d.deleted_at IS NULL`
+      );
+      if (kbEmbeddingsResult.rows.length > 0) {
+        const kbScored = kbEmbeddingsResult.rows.map((e) => ({
+          text: e.text,
+          score: cosineSimilarity(queryVector, e.vector),
+        }));
+        kbScored.sort((a, b) => b.score - a.score);
+
+        // Documents bare hote hain (200 pages tak), isliye products se zyada chunks
+        // (KB_TOP_K) lete hain taake ek sawal ka jawab document ke kai hisso mein
+        // bikhra ho to bhi sab context mein aa sake.
+        //
+        // NOTE: products ke unlike, yahan SIMILARITY_THRESHOLD apply NAHI karte —
+        // real (non-boilerplate) documents mein genuinely relevant chunks ka score bhi
+        // kabhi kabhi 0.3 se neeche aa jata hai (embedding model ka normal behavior,
+        // kisi bug ki wajah se nahi), aur threshold se filter hone par kbContext bilkul
+        // khali reh jata tha — jiski wajah se bot sach mein maujood detail ko bhi "nahi
+        // mila" keh raha tha. Ab hum hamesha top KB_TOP_K chunks (jo bhi unka score ho)
+        // context mein bhejte hain — system prompt already model ko batata hai ke agar
+        // excerpt mein sawal ka jawab na ho to guess na kare, isliye ye safe hai.
+        const kbRelevant = kbScored.slice(0, KB_TOP_K);
+
+        // Hybrid retrieval — sirf embedding similarity kaafi nahi hoti jab document mein
+        // bohot saare chunks ek jaise "shape" ke hon aur sirf ek number/ID se alag hon
+        // (e.g. "page 187" vs "page 143" ka structure/wording bilkul same hota hai —
+        // embedding model in dono ko almost identical samajhta hai, isliye sahi chunk
+        // top-K mein rank hi nahi hota). Isliye query mein agar koi number ya ID-jaisa
+        // token ho (e.g. "187", "RAG200-PAGE-187"), to us exact term ko seedha chunk text
+        // mein literally dhoondte hain aur use hamesha context mein shamil karte hain,
+        // similarity score ki parwah kiye baghair — isse exact page/ID lookups reliably
+        // kaam karte hain.
+        const literalTerms = Array.from(
+          new Set((message.match(/[A-Za-z]*\d[A-Za-z0-9-]*/g) || []).filter((t) => t.replace(/\D/g, '').length >= 2))
+        ).slice(0, 5);
+
+        // Har term alag se match karte hain (ek saath "match ANY term" nahi) — aur agar
+        // koi term document ke bohot saare chunks mein mil raha hai (e.g. query mein PDF
+        // ka filename bhi ho, jisme koi number ho jo har page ke marker mein repeat hota
+        // hai — jaise "200" in "RAG200-PAGE-187"), to wo term "generic" hai, koi useful
+        // identifier nahi — usay discard kar dete hain. Warna wo generic term saari 6
+        // slots bhar deta tha aur asal specific term (e.g. "187", jo sirf 1-2 chunks mein
+        // hota hai) kabhi context mein pohanchta hi nahi tha.
+        const MAX_GENERIC_MATCH_RATIO = 0.15; // ek term chunks ke 15% se zyada mein mile to generic maana
+        const genericCeiling = Math.max(3, Math.ceil(kbEmbeddingsResult.rows.length * MAX_GENERIC_MATCH_RATIO));
+
+        const literalMatches = [];
+        for (const term of literalTerms) {
+          const lowerTerm = term.toLowerCase();
+          const termMatches = kbEmbeddingsResult.rows.filter((row) => row.text.toLowerCase().includes(lowerTerm));
+          if (termMatches.length === 0 || termMatches.length > genericCeiling) continue; // generic ya no-match, skip
+          termMatches.forEach((row) => literalMatches.push(row.text));
+        }
+
+        const combinedTexts = Array.from(new Set([...literalMatches, ...kbRelevant.map((m) => m.text)])).slice(
+          0,
+          KB_TOP_K + literalMatches.length
+        );
+        if (combinedTexts.length > 0) {
+          kbContext = combinedTexts.join('\n\n---\n\n');
+        }
+      }
+    }
+
     const identityContext = await buildIdentityContext(currentUser);
 
     const historyResult = await pool.query(
@@ -272,6 +355,16 @@ const chatWithBot = async (req, res) => {
       content: m.text,
     }));
 
+    // Agar user explicitly "poora/complete/exact content do" jaisa keh raha hai, to sirf
+    // system prompt ke beech mein ek instruction likhna kaafi reliable nahi tha (GPT
+    // kabhi kabhi phir bhi summarize kar deta tha — bohot saari instructions ke beech
+    // ek line dab jati hai). Isliye ab ye check karke, agar aisa request hai, ek chhota
+    // aur bohot explicit reminder VERY END mein (sabse last, jahan model sabse zyada
+    // dhyan deta hai) add karte hain — taake verbatim excerpt reliably milay.
+    const VERBATIM_REQUEST_PATTERN =
+      /\b(complete|full|entire|exact|whole|raw)\b[\s\S]{0,25}\b(content|text|excerpt|page)\b|verbatim|word[- ]for[- ]word/i;
+    const isVerbatimRequest = VERBATIM_REQUEST_PATTERN.test(message);
+
     const systemPrompt = 
      `Today's date is ${new Date().toISOString().slice(0,10)}.
      You are the MyStore assistant.
@@ -280,10 +373,11 @@ Answer the user's question ONLY using the information provided below. Do not mak
 Formatting rules:
 - Do NOT use markdown symbols like ** or __ for bold, or # for headings. Use plain text only.
 - If listing multiple items, use a simple dash (-) per line.
-- Keep answers concise and friendly.
+- Keep answers concise and friendly, EXCEPT when the user explicitly asks for the "full", "complete", "exact", or "entire" content/text of something (e.g. a page, chunk, or excerpt) — in that case quote the relevant excerpt in full instead of summarizing it; the concise rule doesn't apply to an explicit verbatim request.
 -Keep this in your mind that your admin/owner who made you is Areeba Sajjad.
 - Use the conversation history to understand follow-up questions.
 - There are exactly ${totalProductCount} products in the store in total. If asked "how many products" or "list all products", use the Full product catalog list below (it has all of them) — not just the detailed section.
+- You also have access to a Knowledge Base of uploaded PDF documents (see "Knowledge base documents" and "Knowledge base excerpts" below). Each document in the list has an "Overview" line — ALWAYS use that Overview for broad questions about a document as a whole (e.g. "what is this document about", "summarize this pdf", "give me an overview", "what topics does it cover") — never say you don't have that information when an Overview is present. For specific/detailed questions (a particular fact, number, definition, or topic), use the "Knowledge base excerpts" section instead (each excerpt starts with "[Document: "<title>" — part X of Y]" so you know which document it came from — mention that title in your answer, e.g. "According to <title>..."). IMPORTANT: base your answer strictly on the excerpt/overview text itself — do NOT fill in gaps using your own general/pretrained knowledge of the topic, even if you recognize the subject and know more about it than the document says. If the excerpt only names a topic without explaining it, say that the document mentions the topic but doesn't go into detail — do not supply the missing explanation yourself. If a specific detail truly isn't in the excerpts, the overview, or the document list, say clearly that the knowledge base doesn't have that information — do not guess.
 - Order tools (create_order, cancel_order — available to everyone; update_order_status is admin-only): to order/buy something, get the product id (look it up by name in the catalog above) and quantity, then call create_order. To cancel, get the order id from the orders context above. NEVER use create_product or any other tool to represent placing an order — only create_order does that. If a requested action has no matching tool available to you, say so plainly instead of using an unrelated tool.
 ${currentUser.role === 'admin' ? `- Product tools: create_product, update_product, delete_product. For create, get all 5 fields (name, category, description, quantity, price) before calling — ask if missing. You may mention the admin can attach product image(s) using the 📎 attach button below the chat box (up to 5), but do NOT block on it — if they don't attach any, a matching image will be auto-picked based on the product name, so proceed with create_product either way. If a system note says images were attached with this message, use them and don't ask again. For update/delete, you need the product id — look it up by name in the product catalog context above; if not found, ask the admin to confirm which product (by id).
 - Meeting tools: create_meeting, update_meeting, delete_meeting. You need both participants' user ids (look them up by name/email in "All registered users" above), title, date, time, duration, mode, and location/link matching the mode. For update/delete: find the meeting_id yourself by matching the title/date in the Upcoming/Past meetings context above — do NOT ask the admin for the id unless multiple meetings match ambiguously or none match. For update_meeting, silently reuse the meeting's current values (from context) for any field the admin didn't mention — do NOT list out all fields and ask the admin to confirm each one as "(unchanged?)"; only ask a question if something genuinely new is missing (e.g. they want to change participants but didn't say to whom). Once you have enough info, call the tool directly instead of re-describing the plan back to the admin.
@@ -295,7 +389,15 @@ Full product catalog list (${totalProductCount} products total):
 ${catalogSummary || 'No products found.'}
 
 Detailed info on the products most relevant to this specific question:
-${productContext}`;
+${productContext}
+
+Knowledge base documents (${kbDocsResult.rows.length} total):
+${kbDocumentList || 'No documents uploaded yet.'}
+
+Knowledge base excerpts most relevant to this specific question:
+${kbContext}${isVerbatimRequest ? `
+
+CRITICAL INSTRUCTION FOR THIS RESPONSE ONLY: The user explicitly asked for the full/complete/exact/entire content or text of something. You MUST copy the matching "Knowledge base excerpt" above WORD-FOR-WORD in your reply — do not summarize, shorten, paraphrase, or describe it instead. Paste the excerpt's actual text (you may drop the "[Document: ...]" prefix line itself), optionally with one short sentence before it. If genuinely no excerpt matches what they asked for, say so plainly instead of inventing content.` : ''}`;
 
     const uploadedImagePaths = req.files && req.files.length ? req.files.map((f) => `/uploads/${f.filename}`) : [];
     const answer = await runChatWithFunctionCalling(systemPrompt, message, recentHistory, currentUser, uploadedImagePaths);

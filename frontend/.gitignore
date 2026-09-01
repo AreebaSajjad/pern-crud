@@ -12,6 +12,7 @@ node_modules/
 !.env.example
 .env
 .env.local
+knowledge_base/
 dist
 dist-ssr
 *.local

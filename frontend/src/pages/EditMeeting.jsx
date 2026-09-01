@@ -40,7 +40,7 @@ const EditMeeting = () => {
         const meetingsRes = await api.get('/meetings');
         setMeetings(meetingsRes.data.meetings);
 
-        const meeting = meetingsRes.data.meetings.find((m) => m._id === id);
+        const meeting = meetingsRes.data.meetings.find((m) => String(m._id) === String(id));
         if (meeting) {
           setParticipant1(meeting.participants?.[0]?._id || '');
           setParticipant2(meeting.participants?.[1]?._id || '');

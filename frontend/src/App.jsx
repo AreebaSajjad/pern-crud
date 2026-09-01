@@ -19,6 +19,7 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
 import Chatbot from './pages/Chatbot';
 import OkfQuery from './pages/OkfQuery';
+import KnowledgeBase from './pages/KnowledgeBase';
 import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import UserDetail from './pages/UserDetail';
@@ -45,6 +46,7 @@ function App() {
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
          <Route path="/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
         <Route path="/okf-query" element={<ProtectedRoute><OkfQuery /></ProtectedRoute>} />
+        <Route path="/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
         <Route path="/users/:id" element={<ProtectedRoute adminOnly={true}><UserDetail /></ProtectedRoute>} />

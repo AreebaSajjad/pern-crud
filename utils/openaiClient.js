@@ -27,6 +27,35 @@ async function getEmbedding(text) {
   return data.data[0].embedding;
 }
 
+// Ek hi API call mein multiple texts ki embeddings mangwata hai (OpenAI embeddings
+// endpoint ek array bhi accept karta hai). Knowledge Base documents mein bohot saare
+// chunks ban sakte hain (200-page pdf => sau se zyada), isliye ek-ek text ke liye
+// alag request bhejne se zyada behtar hai chunks ko batches mein bhej dena.
+async function getEmbeddingsBatch(texts) {
+  if (!texts.length) return [];
+
+  const res = await fetch(`${OPENAI_API_URL}/embeddings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'text-embedding-3-small',
+      input: texts,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Embedding API (batch) failed: ${errText}`);
+  }
+
+  const data = await res.json();
+  // OpenAI response ka 'data' array input jaisi hi order mein aata hai
+  return data.data.map((d) => d.embedding);
+}
+
 async function getChatCompletion(systemPrompt, userMessage, history = []) {
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -80,4 +109,4 @@ async function getChatCompletionWithTools(messages, tools) {
   return data.choices[0].message; // { role, content, tool_calls? }
 }
 
-module.exports = { getEmbedding, getChatCompletion, getChatCompletionWithTools };
+module.exports = { getEmbedding, getEmbeddingsBatch, getChatCompletion, getChatCompletionWithTools };
