@@ -24,7 +24,6 @@ async function getPullRequestFiles(prNumber) {
 async function setCommitStatus(sha, state, description, context = 'ai-code-review') {
   const { GITHUB_OWNER, GITHUB_REPO } = process.env;
   const url = `${GITHUB_API_URL}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/statuses/${sha}`;
-  console.log('DEBUG setCommitStatus URL:', url); // TEMP - baad mein hata dena
   const res = await fetch(url, {
     method: 'POST',
     headers: { ...headers(), 'Content-Type': 'application/json' },
