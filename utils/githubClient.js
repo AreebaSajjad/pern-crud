@@ -23,20 +23,20 @@ async function getPullRequestFiles(prNumber) {
 // branch protection merge ko block ya allow karta hai
 async function setCommitStatus(sha, state, description, context = 'ai-code-review') {
   const { GITHUB_OWNER, GITHUB_REPO } = process.env;
-  console.log('DEBUG setCommitStatus URL:', url);
-  const res = await fetch(
-    `${GITHUB_API_URL}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/statuses/${sha}`,
-    {
-      method: 'POST',
-      headers: { ...headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ state, description, context }),
-    }
-  );
+  const url = `${GITHUB_API_URL}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/statuses/${sha}`;
+  console.log('DEBUG setCommitStatus URL:', url); // TEMP - baad mein hata dena
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { ...headers(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ state, description, context }),
+  });
   if (!res.ok) throw new Error(`Failed to set commit status: ${await res.text()}`);
   return res.json();
 }
 
+
 // PR par AI ka feedback comment ke through post karta hai
+//testing it 
 async function postPRComment(prNumber, body) {
   const { GITHUB_OWNER, GITHUB_REPO } = process.env;
   const res = await fetch(
