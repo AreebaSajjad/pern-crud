@@ -4,6 +4,8 @@ A full-stack store management system built with **PostgreSQL, Express, React, an
 
 ---
 
+# AI Code Review Test
+
 ## Features
 
 - **Authentication**

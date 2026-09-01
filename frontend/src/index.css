@@ -2809,3 +2809,316 @@ body {
     padding: 0 4px !important;
   }
 }
+
+/* ---------------- Knowledge Base module ---------------- */
+.kb-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  /* .page-header ki max-width:1000px + auto-margin centering yahan nahi chahiye —
+     KB ke cards (.kb-card) poori width lete hain, isliye header ko bhi unhi ke
+     jaisa left-aligned rakha, taake sab kuch seedhi line mein match ho */
+  max-width: none;
+  margin: 30px 20px 20px;
+  padding: 0;
+}
+
+.kb-header-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.kb-header h2 {
+  /* h2 ka browser default top/bottom margin (~0.8em) hi wo gap tha jo title aur
+     subtitle ke beech, aur upar bhi, faltu white space bana raha tha */
+  margin: 0;
+  line-height: 1.2;
+}
+
+.kb-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #777;
+}
+
+.kb-subtitle a {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.kb-subtitle a:hover {
+  text-decoration: underline;
+}
+
+.kb-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  padding: 22px;
+  margin: 0 20px 24px;
+}
+
+.kb-card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.kb-card-icon {
+  font-size: 20px;
+}
+
+.kb-card-heading h4 {
+  margin: 0 0 2px;
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.kb-upload-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: #888;
+}
+
+.kb-upload-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 20px;
+}
+
+.kb-dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  background: #f8fafc;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.kb-dropzone-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.kb-dropzone-icon {
+  font-size: 32px;
+}
+
+.kb-or {
+  font-size: 12px;
+  color: #999;
+}
+
+.kb-choose-file-btn {
+  /* Base .btn-primary width:100% forms a full-width bar — yahan chota,
+     content-width button chahiye jaisa reference design mein hai */
+  width: auto;
+  padding: 10px 26px;
+  margin-top: 0;
+}
+
+.kb-selected-file {
+  font-weight: 600;
+  color: #1e293b;
+  word-break: break-all;
+}
+
+.kb-how-it-works {
+  background: #eff6ff;
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+
+.kb-how-it-works h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #1e3a8a;
+}
+
+.kb-how-it-works ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kb-how-it-works li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.kb-step-number {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kb-upload-btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.kb-table-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.kb-refresh-btn {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.kb-refresh-btn:hover {
+  background: #f1f5f9;
+}
+
+.kb-doc-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kb-doc-icon {
+  font-size: 20px;
+}
+
+.kb-doc-title {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 13.5px;
+}
+
+.kb-doc-size {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.kb-status-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.kb-status-processing {
+  background: #fff4d6;
+  color: #a86b00;
+}
+
+.kb-status-ready {
+  background: #e2f6ea;
+  color: #1f8a4c;
+}
+
+.kb-status-failed {
+  background: #fde2e2;
+  color: #c0392b;
+}
+
+.kb-actions-cell {
+  display: flex;
+  gap: 8px;
+}
+
+.kb-icon-btn {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.kb-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.kb-icon-delete {
+  border-color: #fecaca;
+}
+
+.kb-icon-view {
+  border-color: #bfdbfe;
+}
+
+.kb-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #666;
+}
+
+.kb-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kb-pagination-controls button {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+}
+
+.kb-pagination-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.kb-page-number {
+  background: #1e3a8a;
+  color: #fff;
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .kb-upload-grid {
+    grid-template-columns: 1fr;
+  }
+  .kb-card {
+    margin: 0 12px 20px;
+  }
+}

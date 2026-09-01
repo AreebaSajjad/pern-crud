@@ -19,7 +19,9 @@
     "google-auth-library": "^9.15.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
+    "ngrok": "^5.0.0-beta.2",
     "nodemailer": "^6.9.16",
+    "pdf-parse": "^1.1.1",
     "pg": "^8.22.0"
   },
   "devDependencies": {

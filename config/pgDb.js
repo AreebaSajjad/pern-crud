@@ -132,6 +132,37 @@ const initTables = async () => {
   await pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;`);
   await pool.query(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;`);
+
+  // ---------------- Knowledge Base module ----------------
+  // Ek uploaded PDF ka record — status batata hai processing kahan tak pahunchi
+  // (processing -> ready ya failed). Actual text chunks + vectors 'embeddings' table mein hi
+  // jaate hain (source_type = 'kb_document', source_id = is table ki id), taake purana
+  // similarity-search code reuse ho sake — koi naya vector-storage duplicate nahi karna paDa.
+  // Sawal-jawab is module ka apna chat nahi hai — wo existing "AI Assistant" (ragController)
+  // se hi hota hai, jo ab kb_document chunks bhi apni retrieval mein include karta hai.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS kb_documents (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      original_name VARCHAR(255) NOT NULL,
+      file_path VARCHAR(500) NOT NULL,
+      file_size_bytes BIGINT,
+      uploaded_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      page_count INTEGER,
+      chunk_count INTEGER NOT NULL DEFAULT 0,
+      summary TEXT,
+      status VARCHAR(20) NOT NULL DEFAULT 'processing' CHECK (status IN ('processing','ready','failed')),
+      error_message TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      deleted_at TIMESTAMP
+    );
+  `);
+
+  // Purani install mein table bina is column ke ban chuki ho to bhi add ho jaye
+  await pool.query(`ALTER TABLE kb_documents ADD COLUMN IF NOT EXISTS file_size_bytes BIGINT;`);
+  // Purani install (jisme ye feature nahi thi) mein bhi summary column add ho jaye
+  await pool.query(`ALTER TABLE kb_documents ADD COLUMN IF NOT EXISTS summary TEXT;`);
 };
 
 const connectPostgres = async () => {
@@ -139,7 +170,7 @@ const connectPostgres = async () => {
     await pool.query('SELECT NOW()');
     console.log('PostgreSQL Connected Successfully');
     await initTables();
-    console.log('All tables ready (users, products, meetings, meeting_participants, conversations, messages, embeddings, orders)');
+    console.log('All tables ready (users, products, meetings, meeting_participants, conversations, messages, embeddings, orders, kb_documents)');
   } catch (error) {
     console.error('PostgreSQL Connection Failed:', error.message);
     process.exit(1);
