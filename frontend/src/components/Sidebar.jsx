@@ -64,6 +64,11 @@ const Sidebar = () => {
           <Link to="/knowledge-base" className={isActive('/knowledge-base') ? 'active' : ''} onClick={() => setIsOpen(false)}>
             <span className="icon">📚</span> Knowledge Base
           </Link>
+          {user?.role === 'admin' && (
+  <Link to="/ai-reviews" className={isActive('/ai-reviews') ? 'active' : ''} onClick={() => setIsOpen(false)}>
+    <span className="icon">🔍</span> AI Code Reviews
+  </Link>
+)}
           <Link to="/profile" className={isActive('/profile') ? 'active' : ''} onClick={() => setIsOpen(false)}>
             <span className="icon">⚙️</span> Profile
           </Link>

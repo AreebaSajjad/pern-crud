@@ -24,6 +24,7 @@ import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import UserDetail from './pages/UserDetail';
 import ProductOrders from './pages/ProductOrders';
+import AIReviewDashboard from './pages/AIReviewDashboard';
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
         <Route path="/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
         <Route path="/users/:id" element={<ProtectedRoute adminOnly={true}><UserDetail /></ProtectedRoute>} />
         <Route path="/products/:id/orders" element={<ProtectedRoute adminOnly={true}><ProductOrders /></ProtectedRoute>} />
+        <Route path="/ai-reviews" element={<ProtectedRoute adminOnly={true}><AIReviewDashboard /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
