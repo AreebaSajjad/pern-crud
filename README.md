@@ -3,10 +3,6 @@
 A full-stack store management system built with **PostgreSQL, Express, React, and Node (PERN)**. It supports product/order/meeting management with role-based access (admin vs regular user), Google login, email-based password reset, and an AI-powered chat assistant (RAG) that can answer questions and perform actions (create orders, manage products, meetings, and users) through natural language.
 
 ---
-
-
-
-
 ## Features
 
 - **Authentication**
@@ -158,4 +154,3 @@ All protected routes require a `Bearer` JWT in the `Authorization` header.
 - The chatbot uses OpenAI function calling — the exact tools available depend on the logged-in user's role (admins get product/meeting/user management tools; all users get order tools).
 - Password resets never accept a typed password directly — a 6-digit code is emailed and used on the reset-password page.
 
-// trigger test

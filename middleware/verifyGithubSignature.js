@@ -1,10 +1,15 @@
 const crypto = require('crypto');
 
-// GitHub webhook ka payload authentic hai ya nahi ye check karta hai - isse koi
-// bhi bandaa fake request bhej ke hamara AI review ya merge status trigger nahi kar sakta
 function verifyGithubSignature(req, res, next) {
-  const signature = req.headers['x-hub-signature-256'];
   const secret = process.env.GITHUB_WEBHOOK_SECRET;
+
+  if (!secret) {
+    console.error('GITHUB_WEBHOOK_SECRET is not set in .env');
+    return res.status(500).json({ message: 'Server misconfigured' });
+  }
+
+  const signature = req.headers['x-hub-signature-256'];
+
   if (!signature || !req.rawBody) {
     return res.status(401).json({ message: 'Missing signature' });
   }
