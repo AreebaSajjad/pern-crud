@@ -52,4 +52,3 @@ async function postPRComment(prNumber, body) {
 }
 
 module.exports = { getPullRequestFiles, setCommitStatus, postPRComment };
-//env secret for testing
