@@ -5,7 +5,6 @@ const crypto = require('crypto');
 function verifyGithubSignature(req, res, next) {
   const signature = req.headers['x-hub-signature-256'];
   const secret = process.env.GITHUB_WEBHOOK_SECRET;
-// AI code review webhook test
   if (!signature || !req.rawBody) {
     return res.status(401).json({ message: 'Missing signature' });
   }

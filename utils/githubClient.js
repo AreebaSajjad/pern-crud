@@ -35,7 +35,6 @@ async function setCommitStatus(sha, state, description, context = 'ai-code-revie
 
 
 // PR par AI ka feedback comment ke through post karta hai
-//testing it 
 async function postPRComment(prNumber, body) {
   const { GITHUB_OWNER, GITHUB_REPO } = process.env;
   const res = await fetch(
