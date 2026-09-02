@@ -1,7 +1,9 @@
 ---
 type: index
 title: "Product Catalog"
+
 timestamp: 2026-09-02T12:30:29.575Z
+
 ---
 
 # Product Catalog (OKF Bundle)
