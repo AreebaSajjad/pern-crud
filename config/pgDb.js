@@ -163,6 +163,22 @@ const initTables = async () => {
   await pool.query(`ALTER TABLE kb_documents ADD COLUMN IF NOT EXISTS file_size_bytes BIGINT;`);
   // Purani install (jisme ye feature nahi thi) mein bhi summary column add ho jaye
   await pool.query(`ALTER TABLE kb_documents ADD COLUMN IF NOT EXISTS summary TEXT;`);
+
+  // ---------------- AI PR Code Review module ----------------
+  // Har GitHub webhook ke baad AI review ka result yahan save hota hai — taake
+  // frontend dashboard mein history dikhai ja sake (GitHub PR comment ke ilawa).
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pr_reviews (
+      id SERIAL PRIMARY KEY,
+      repo VARCHAR(255) NOT NULL,
+      pr_number INTEGER NOT NULL,
+      pr_title VARCHAR(500),
+      commit_sha VARCHAR(100) NOT NULL,
+      status VARCHAR(20) NOT NULL CHECK (status IN ('approved','rejected','error')),
+      feedback TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+  `);
 };
 
 const connectPostgres = async () => {
@@ -170,7 +186,7 @@ const connectPostgres = async () => {
     await pool.query('SELECT NOW()');
     console.log('PostgreSQL Connected Successfully');
     await initTables();
-    console.log('All tables ready (users, products, meetings, meeting_participants, conversations, messages, embeddings, orders, kb_documents)');
+    console.log('All tables ready (users, products, meetings, meeting_participants, conversations, messages, embeddings, orders, kb_documents, pr_reviews)');
   } catch (error) {
     console.error('PostgreSQL Connection Failed:', error.message);
     process.exit(1);
