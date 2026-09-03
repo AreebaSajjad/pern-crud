@@ -1,6 +1,5 @@
 const { Pool } = require('pg');
 
-// PG_PASSWORD missing/empty hone par turant clear error do (SASL ka confusing error nahi)
 if (!process.env.PG_PASSWORD) {
   console.error('PG_PASSWORD is missing in your .env file — set your real Postgres password there.');
 }
