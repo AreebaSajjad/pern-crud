@@ -3,7 +3,7 @@ const { Pool } = require('pg');
 if (!process.env.PG_PASSWORD) {
   console.error('PG_PASSWORD is missing in your .env file — set your real Postgres password there.');
 }
-
+//env secret
 // Postgres connection pool — .env se config uthata hai
 const pool = new Pool({
   host: process.env.PG_HOST,
